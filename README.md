@@ -42,19 +42,19 @@ Install a module with flags, e.g. `:kit/sql` for PostgreSQL:
 Configure the database credentials in `resources/system.edn`,
 e.g. (dropping `:dev` and `:test` in favour of `:default`):
 
-    {:default {:jdbc-url "jdbc:postgresql://localhost:5432/kit-hello-world?user=kit-hello-world&password=topsecret"}
+    {:default {:jdbc-url "jdbc:postgresql://localhost:5432/foobar?user=foobar&password=topsecret"}
 
 According `docker-compose.yaml` file:
 
 ```yaml
-name: kit-hello-world
+name: foobar
 
 services:
   db:
     image: postgres:17.4-bookworm
     environment:
-      POSTGRES_DB: kit-hello-world
-      POSTGRES_USER: kit-hello-world
+      POSTGRES_DB: foobar
+      POSTGRES_USER: foobar
       POSTGRES_PASSWORD: topsecret
     ports:
       - '5432:5432'
@@ -68,3 +68,81 @@ volumes:
 Reload the system (e.g. re-connects the database with new credentials):
 
     (reset)
+
+## Database
+
+Create a new migration called _create users table_:
+
+    (migratus.core/create (:db.sql/migrations state/system) "create-account-table")
+
+This creates new timestamped files in `resources/migrations` with an `.up.sql`
+and a `.down.sql` extension.
+
+In `[timestamp]-create-account-table.up.sql`:
+
+```sql
+create table if not exists account (
+    id serial primary key,
+    name varchar(100) not null,
+    password varchar(255) not null
+);
+```
+
+In `[timestamp]-create-account-table.down.sql`:
+
+```sql
+drop table if exists account;
+```
+
+Run the migration:
+
+    (migratus.core/migrate (:db.sql/migrations state/system))
+
+Rollback the migration:
+
+    (migratus.core/rollback (:db.sql/migrations state/system))
+
+Rollback all migrations:
+
+    (migratus.core/migrate (:db.sql/migrations state/system))
+
+Create queries in `resources/sql`, e.g. `queries.sql`:
+
+```sql
+-- :name create-account! :<!
+-- :doc inserts and returns an account
+insert into account (name, password)
+values (:name, :password)
+returning *;
+
+-- :name get-account-by-id :? :1
+-- :doc gets a single account given its id
+select *
+from account 
+where id = :id;
+
+-- :name list-accounts
+-- :doc lists all accounts
+select *
+from account;
+```
+
+Create a user:
+
+    (reset)
+    (go) ;; TODO: really needed?
+    ((:db.sql/query-fn state/system) :create-account! {:name "Joe" :password "Secret"})
+    ((:db.sql/query-fn state/system) :get-account-by-id {:id 1})
+    ((:db.sql/query-fn state/system) :list-accounts {})
+
+Define a shortcut in `user.clj`:
+
+    (comment
+      (go)
+      (reset)
+      (def query-fn (:db.sql/query-fn state/system)))
+
+Evaluate with `[Ctrl]`-`[Enter]`, then use it as follows in the REPL:
+
+    (query-fn :create-account! {:name "Jill" :password "Topsecret"})
+
