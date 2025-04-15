@@ -146,3 +146,23 @@ Evaluate with `[Ctrl]`-`[Enter]`, then use it as follows in the REPL:
 
     (query-fn :create-account! {:name "Jill" :password "Topsecret"})
 
+## Routing
+
+Create a new controller under `src/clj/com/github/patrickbucher/foobar/web/controllers/hello.clj`:
+
+```clojure
+(ns com.github.patrickbucher.foobar.web.controllers.health
+  (:require
+    [ring.util.http-response :as http-response]))
+
+(defn hello! [req]
+  (http-response/ok {:hello "World"}))
+```
+
+Register it in `src/clj/com/github/patrickbucher/foobar/web/routes/api.clj`:
+
+```clojure
+(defn api-routes [_opts]
+   [ ;; ...
+   ["/hello" {:get hello/hello!}]])
+```
