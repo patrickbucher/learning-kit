@@ -102,10 +102,6 @@ Rollback the migration:
 
     (migratus.core/rollback (:db.sql/migrations state/system))
 
-Rollback all migrations:
-
-    (migratus.core/migrate (:db.sql/migrations state/system))
-
 Create queries in `resources/sql`, e.g. `queries.sql`:
 
 ```sql
